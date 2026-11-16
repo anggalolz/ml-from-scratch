@@ -1,0 +1,26 @@
+# Build outputs
+build/
+dist/
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+
+# Temporary files
+*.log
+*.tmp
