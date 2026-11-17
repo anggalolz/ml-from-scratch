@@ -6,23 +6,49 @@
 #include "matrix-inv.h"
 #include "ml/matrix.h"
 
-Matrix *mat_solve(const Matrix *m, Matrix *rhs)
+Matrix *mat_solve(const Matrix *m, const Matrix *rhs)
 {
     if (m->rows != m->cols)
         return NULL;
+    
+    Matrix *solution = mat_create(rhs->rows, rhs->cols);
+    if (!solution)
+        return NULL;
+    memcpy(solution->data, rhs->data, rhs->rows * rhs->cols * sizeof *rhs->data);
 
-    Matrix *rref = mat_rref(m, rhs);
+    Matrix *rref = mat_rref(m, solution);
+    if (!rref)
+    {
+        mat_free(solution);
+        return NULL;
+    }
+
     for (size_t i = 0; i < rref->cols; i++)
+    {
         if (fabs(rref->data[i * rref->cols + i]) < TOL)
+        {
+            mat_free(rref);
+            mat_free(solution);
             return NULL;
+        }
+    }
 
-    return rhs;
+    mat_free(rref);
+    return solution;
 }
 
 Matrix *mat_inv(const Matrix *m)
 {
+    if (m->rows != m->cols)
+        return NULL;
+
     Matrix *identity = mat_identity(m->rows);
+    if (!identity)
+        return NULL;
+
     Matrix *inv = mat_solve(m, identity);
+
+    mat_free(identity);
     return inv;
 }
 
@@ -32,6 +58,8 @@ Matrix *mat_row_echelon(const Matrix *m, const Matrix *rhs)
         return NULL;
 
     Matrix *result = mat_create(m->rows, m->cols);
+    if (!result)
+        return NULL;
     memcpy(result->data, m->data, result->rows * result->cols * sizeof *result->data);
 
     size_t h = 0;
@@ -41,21 +69,24 @@ Matrix *mat_row_echelon(const Matrix *m, const Matrix *rhs)
     {
         size_t i_max = _max_abs_pivot_row_index(result, k, h);
         if (fabs(result->data[i_max * result->cols + k]) < TOL)
-            k++;
-        else
         {
-            _swap_rows(result, h, i_max);
+            k++;
+            continue;
+        }
+
+        _swap_rows(result, h, i_max);
+        if (rhs)
+            _swap_rows(rhs, h, i_max);
+        
+        for (size_t i = h + 1; i < result->rows; i++)
+        {
+            float mult = -result->data[i * result->cols + k] / result->data[h * result->cols + k];
+            if (fabs(mult) < TOL)
+                continue;
+            
+            _add_a_row_multiple(result, i, h, mult);
             if (rhs)
-                _swap_rows(rhs, h, i_max);
-            for (size_t i = h + 1; i < result->rows; i++)
-            {
-                float mult = -result->data[i * result->cols + k] / result->data[h * result->cols + k];
-                if (fabs(mult) < TOL)
-                    continue;
-                _add_a_row_multiple(result, i, h, mult);
-                if (rhs)
-                    _add_a_row_multiple(rhs, i, h, mult);
-            }
+                _add_a_row_multiple(rhs, i, h, mult);
         }
 
         h++;
@@ -71,25 +102,31 @@ Matrix *mat_rref(const Matrix *m, const Matrix *rhs)
     size_t k = 0;
 
     Matrix *result = mat_row_echelon(m, rhs);
+    if (!result)
+        return NULL;
+    
     while (h < result->rows && k < result->cols)
     {
         float pivot = result->data[h * result->cols + k];
         if (fabs(pivot) < TOL)
-            k++;
-        else
         {
-            _multiply_row_by_const(result, h, 1 / pivot);
+            k++;
+            continue;
+        }
+
+        _multiply_row_by_const(result, h, 1 / pivot);
+        if (rhs)
+            _multiply_row_by_const(rhs, h, 1 / pivot);
+        
+        for (size_t i = 0; i < h; i++)
+        {
+            float mult = -result->data[i * result->cols + k];
+            if (fabs(mult) < TOL)
+                continue;
+            
+            _add_a_row_multiple(result, i, h, mult);
             if (rhs)
-                _multiply_row_by_const(rhs, h, 1 / pivot);
-            for (size_t i = 0; i < h; i++)
-            {
-                float mult = -result->data[i * result->cols + k];
-                if (fabs(mult) < TOL)
-                    continue;
-                _add_a_row_multiple(result, i, h, mult);
-                if (rhs)
-                    _add_a_row_multiple(rhs, i, h, mult);
-            }
+                _add_a_row_multiple(rhs, i, h, mult);
         }
 
         h++;
@@ -105,9 +142,14 @@ int mat_det(const Matrix *m, float *result)
         return -1;
 
     Matrix *ref = mat_row_echelon(m, NULL);
+    if (!ref)
+        return -1;
+    
     *result = 1;
     for (size_t i = 0; i < ref->cols; i++)
         *result *= ref->data[i * ref->cols + i];
+    
+    mat_free(ref);
 
     return 0;
 }

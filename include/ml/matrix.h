@@ -5,15 +5,19 @@
 
 #define TOL 1e-10
 
-typedef struct
+typedef struct Matrix
 {
     size_t rows, cols;
     float *data;
 } Matrix;
 
-// Base matrices operation
+// Memory management
 
 Matrix *mat_create(size_t rows, size_t cols);
+
+void mat_free(Matrix *m);
+
+// Basic matrices operation
 
 Matrix *mat_add(const Matrix *m1, const Matrix *m2);
 
@@ -31,7 +35,7 @@ Matrix *mat_identity(size_t size);
 
 // Inverse-related operation
 
-Matrix *mat_solve(const Matrix *m, Matrix *rhs);
+Matrix *mat_solve(const Matrix *m, const Matrix *rhs);
 
 Matrix *mat_inv(const Matrix *m);
 

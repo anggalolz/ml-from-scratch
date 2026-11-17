@@ -5,6 +5,9 @@
 
 Matrix *mat_create(size_t rows, size_t cols)
 {
+    if (rows == 0 || cols == 0)
+        return NULL;
+
     Matrix *result = malloc(sizeof *result);
     if (!result)
         return NULL;
@@ -22,12 +25,26 @@ Matrix *mat_create(size_t rows, size_t cols)
     return result;
 }
 
+void mat_free(Matrix *m)
+{
+    if (!m)
+        return;
+    
+    free(m->data);
+    m->data = NULL;
+
+    free(m);
+    m = NULL;
+}
+
 Matrix *mat_add(const Matrix *m1, const Matrix *m2)
 {
     if (m1->rows != m2->rows || m1->cols != m2->cols)
         return NULL;
 
     Matrix *result = mat_create(m1->rows, m1->cols);
+    if (!result)
+        return NULL;
 
     for (size_t i = 0; i < result->rows * result->cols; i++)
         result->data[i] = m1->data[i] + m2->data[i];
@@ -41,6 +58,8 @@ Matrix *mat_sub(const Matrix *m1, const Matrix *m2)
         return NULL;
 
     Matrix *result = mat_create(m1->rows, m1->cols);
+    if (!result)
+        return NULL;
 
     for (size_t i = 0; i < result->rows * result->cols; i++)
         result->data[i] = m1->data[i] - m2->data[i];
@@ -54,6 +73,8 @@ Matrix *mat_mul(const Matrix *m1, const Matrix *m2)
         return NULL;
 
     Matrix *result = mat_create(m1->rows, m2->cols);
+    if (!result)
+        return NULL;
 
     for (size_t i = 0; i < result->rows; i++)
     {
@@ -72,6 +93,8 @@ Matrix *mat_mul(const Matrix *m1, const Matrix *m2)
 Matrix *mat_mul_by_const(float mult, const Matrix *m)
 {
     Matrix *result = mat_create(m->rows, m->cols);
+    if (!result)
+        return NULL;
 
     for (size_t i = 0; i < result->rows * result->cols; i++)
         result->data[i] = mult * m->data[i];
@@ -82,6 +105,8 @@ Matrix *mat_mul_by_const(float mult, const Matrix *m)
 Matrix *mat_transpose(const Matrix *m)
 {
     Matrix *result = mat_create(m->cols, m->rows);
+    if (!result)
+        return NULL;
 
     for (size_t i = 0; i < result->rows; i++)
     {
@@ -107,6 +132,8 @@ float mat_trace(const Matrix *m)
 Matrix *mat_identity(size_t size)
 {
     Matrix *result = mat_create(size, size);
+    if (!result)
+        return NULL;
 
     for (size_t i = 0; i < result->rows; i++)
         for (size_t j = 0; j < result->cols; j++)
